@@ -1,1 +1,43 @@
-{"name": "bizcarder","version": "1.0.0","description": "Profesyonel ve akıllı QR kodlu kartvizit tasarım aracı","main": "main.js","scripts": {"start": "electron .","package": "electron-builder build --dir","dist": "electron-builder"},"keywords": ["business-card","generator","vcard","qr-code","electron"],"author": "BizCarder Team","license": "MIT","devDependencies": {"electron": "^28.2.0","electron-builder": "^24.9.1"},"build": {"appId": "com.bizcarder.app","productName": "BizCarder","directories": {"output": "dist"},"win": {"target": "nsis"},"mac": {"target": "dmg"},"linux": {"target": "AppImage"}}}
+{
+  "name": "bizcarder",
+  "version": "1.0.0",
+  "description": "Profesyonel ve akıllı QR kodlu kartvizit tasarım aracı",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node test-harness.js",
+    "package": "electron-builder build --dir",
+    "dist": "electron-builder"
+  },
+  "keywords": [
+    "business-card",
+    "generator",
+    "vcard",
+    "qr-code",
+    "electron"
+  ],
+  "author": "BizCarder Team",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.2.0",
+    "electron-builder": "^24.9.1",
+    "jsdom": "^24.0.0",
+    "qrcode-generator": "^1.4.4"
+  },
+  "build": {
+    "appId": "com.bizcarder.app",
+    "productName": "BizCarder",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}
