@@ -145,7 +145,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1" data-i18n="companyName">Şiriket Adı</label>
+                        <label class="block text-xs font-medium text-slate-600 mb-1" data-i18n="companyName">Şirket Adı</label>
                         <input type="text" id="input-company" data-i18n-placeholder="defaultCompany" value="Kreatif Medya A.Ş." class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none">
                     </div>
                     <div>
@@ -801,16 +801,37 @@
             render();
         }
 
+        // Escape user text before injecting it into innerHTML (prevents HTML injection / layout breaks)
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // Escape a value for safe inclusion inside a vCard field (RFC 6350 §3.4)
+        function escapeVCard(value) {
+            return String(value)
+                .replace(/\\/g, '\\\\')
+                .replace(/\n/g, '\\n')
+                .replace(/,/g, '\\,')
+                .replace(/;/g, '\\;');
+        }
+
         // Build vCard text dynamically for QR scan compatibility
         function getVCardText() {
-            const name = inputName.value || translations[currentLang].defaultName;
-            const title = inputTitle.value || translations[currentLang].defaultTitle;
-            const company = inputCompany.value || translations[currentLang].defaultCompany;
-            const phone = inputPhone.value || '';
-            const email = inputEmail.value || '';
-            const web = inputWebsite.value || '';
-            const address = inputAddress.value || '';
+            const name = escapeVCard(inputName.value || translations[currentLang].defaultName);
+            const title = escapeVCard(inputTitle.value || translations[currentLang].defaultTitle);
+            const company = escapeVCard(inputCompany.value || translations[currentLang].defaultCompany);
+            const phone = escapeVCard(inputPhone.value || '');
+            const email = escapeVCard(inputEmail.value || '');
+            const web = escapeVCard(inputWebsite.value || '');
+            const address = escapeVCard(inputAddress.value || '');
 
+            // The bare semicolons in the ADR line are structural field separators (RFC 6350);
+            // only the interpolated values are escaped, not the template itself.
             return `BEGIN:VCARD\nVERSION:3.0\nFN:${name}\nORG:${company}\nTITLE:${title}\nTEL;TYPE=CELL,VOICE:${phone}\nEMAIL;TYPE=PREF,INTERNET:${email}\nURL:${web}\nADR;TYPE=WORK:;;${address};;;\nEND:VCARD`;
         }
 
@@ -887,17 +908,20 @@
                 printBack.className = "print-card bg-white relative overflow-hidden p-6 flex flex-col justify-center items-center";
             }
 
-            // Generate content HTML based on chosen templates
+            // Generate content HTML based on chosen templates.
+            // The back face is built twice so the preview and print cards get unique QR
+            // container ids (HTML ids must be unique, and each QR is drawn by id).
             const frontHTML = buildFrontHTML();
-            const backHTML = buildBackHTML();
+            const previewBackHTML = buildBackHTML('back-qr-code-box');
+            const printBackHTML = buildBackHTML('print-qr-code-box');
 
             // Inject to Preview Cards
             document.getElementById('front-content').innerHTML = frontHTML;
-            document.getElementById('back-content').innerHTML = backHTML;
+            document.getElementById('back-content').innerHTML = previewBackHTML;
 
             // Inject to Print Cards
             printFront.innerHTML = `<div class="z-10 flex flex-col h-full justify-between w-full">${frontHTML}</div>`;
-            printBack.innerHTML = `<div class="z-10 flex flex-col items-center justify-center text-center h-full w-full">${backHTML}</div>`;
+            printBack.innerHTML = `<div class="z-10 flex flex-col items-center justify-center text-center h-full w-full">${printBackHTML}</div>`;
 
             // Draw QR Code if enabled on the back face
             if (backOption === 'qr') {
@@ -954,14 +978,14 @@
 
         function buildFrontHTML() {
             const data = {
-                name: inputName.value || translations[currentLang].defaultName,
-                title: inputTitle.value || translations[currentLang].defaultTitle,
-                company: inputCompany.value || translations[currentLang].defaultCompany,
-                slogan: inputSlogan.value || translations[currentLang].defaultSlogan,
-                phone: inputPhone.value || translations[currentLang].defaultPhone,
-                email: inputEmail.value || translations[currentLang].defaultEmail,
-                web: inputWebsite.value || translations[currentLang].defaultWeb,
-                address: inputAddress.value || translations[currentLang].defaultAddress
+                name: escapeHtml(inputName.value || translations[currentLang].defaultName),
+                title: escapeHtml(inputTitle.value || translations[currentLang].defaultTitle),
+                company: escapeHtml(inputCompany.value || translations[currentLang].defaultCompany),
+                slogan: escapeHtml(inputSlogan.value || translations[currentLang].defaultSlogan),
+                phone: escapeHtml(inputPhone.value || translations[currentLang].defaultPhone),
+                email: escapeHtml(inputEmail.value || translations[currentLang].defaultEmail),
+                web: escapeHtml(inputWebsite.value || translations[currentLang].defaultWeb),
+                address: escapeHtml(inputAddress.value || translations[currentLang].defaultAddress)
             };
 
             const isVert = currentOrientation === 'vertical';
@@ -1140,10 +1164,10 @@
             }
         }
 
-        function buildBackHTML() {
+        function buildBackHTML(qrBoxId = 'back-qr-code-box') {
             const data = {
-                company: inputCompany.value || translations[currentLang].defaultCompany,
-                slogan: inputSlogan.value || translations[currentLang].defaultSlogan
+                company: escapeHtml(inputCompany.value || translations[currentLang].defaultCompany),
+                slogan: escapeHtml(inputSlogan.value || translations[currentLang].defaultSlogan)
             };
 
             const isDarkTheme = (currentTemplate === 'dark-elegant');
@@ -1176,7 +1200,7 @@
                             <!-- Right: High-Contrast QR Code container -->
                             <div class="col-span-5 flex justify-center">
                                 <div class="bg-white p-2.5 rounded-2xl shadow-md border border-slate-100 flex items-center justify-center">
-                                    <div id="${arguments.callee.caller && arguments.callee.caller.name === 'render' ? 'back-qr-code-box' : 'print-qr-code-box'}" class="w-[110px] h-[110px]"></div>
+                                    <div id="${qrBoxId}" class="w-[110px] h-[110px]"></div>
                                 </div>
                             </div>
                         </div>

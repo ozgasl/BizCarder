@@ -86,9 +86,11 @@ setTimeout(() => {
   console.log('\n[8] HTML-injection / escaping in user fields');
   doc.getElementById('input-name').value = '<img src=x onerror=alert(1)>';
   doc.getElementById('input-name').dispatchEvent(new window.Event('input'));
-  const rawFront = doc.getElementById('front-content').innerHTML;
-  check('name field is HTML-escaped (no raw <img onerror>)',
-        !/<img src=x onerror=/.test(rawFront),
+  const fc = doc.getElementById('front-content');
+  // Robust check: did the field create a live element node instead of staying text?
+  const injectedImgs = Array.from(fc.querySelectorAll('img'))
+    .filter(img => (img.getAttribute('onerror') || '').includes('alert'));
+  check('name field does not inject live HTML elements', injectedImgs.length === 0,
         'unescaped user input is injected via innerHTML (XSS / layout break risk)');
   doc.getElementById('input-name').value = 'Ahmet Yılmaz';
   doc.getElementById('input-name').dispatchEvent(new window.Event('input'));
